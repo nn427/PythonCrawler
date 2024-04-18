@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import json
 import os
 import tools
+import pandas
 
 def GetCardList(page):
     # url = f'https://www.takaratomy.co.jp/products/wixoss/card/card_list.php?card_page={page}&keyword=&card_kind=&card_type=&rarelity=&support_formats=2&story=&level=&color=&ability=&keyword_target=%E3%82%AB%E3%83%BC%E3%83%89No,%E3%82%AB%E3%83%BC%E3%83%89%E5%90%8D,%E3%82%AB%E3%83%BC%E3%83%89%E3%82%BF%E3%82%A4%E3%83%97,%E3%83%86%E3%82%AD%E3%82%B9%E3%83%88,%E3%82%A4%E3%83%A9%E3%82%B9%E3%83%88%E3%83%AC%E3%83%BC%E3%82%BF%E3%83%BC,%E3%83%95%E3%83%AC%E3%83%BC%E3%83%90%E3%83%BC&product_type=&product_id=&product_no=&newadd=&pageflg=1'
@@ -23,12 +24,29 @@ def GetCardList(page):
 
             GetCardList(page+1)
         else:
-            with open(rf"wixoss_card_list.txt", 'w', encoding='utf-8') as file:
+            with open(rf"test_output/wixoss_card_list.txt", 'w', encoding='utf-8') as file:
                 # file.write("\n".join(str(item) for item in cardList))
                 json.dump(cardList, file, ensure_ascii=False, indent=4)
+
+            cardList_excel = []
+            for card in cardList:
+                card_handled = []
+                card_handled.append(card['cardNum'])
+                card_handled.append(card['cardPack'])
+                card_handled.append(card['cardName'])
+                card_handled.append(card['cardRarity'])
+                card_handled.append(card['cardImg'])
+                for d in card['detail'].values():
+                    card_handled.append(d)
+
+                cardList_excel.append(card_handled)
+
+            data = pandas.DataFrame(cardList_excel)
+            data.to_excel("test_output/p16cardlist.xlsx",sheet_name='sheet1',index=False)
+
             print('done')
     else:
-        with open(rf"wixoss_card_list.txt", 'w', encoding='utf-8') as file:
+        with open(rf"test_output/wixoss_card_list.txt", 'w', encoding='utf-8') as file:
             # file.write("\n".join(str(item) for item in cardList))
             json.dump(cardList, file, ensure_ascii=False, indent=4)
         print(f'Get page {page} failed')
@@ -49,10 +67,10 @@ def GetCardData(url):
         cardImg = soup.find("div",class_="cardImg").img["src"]
         cardDetail["cardImg"] = cardImg
 
-        if not os.path.exists(cardPack):
-            os.mkdir(cardPack)
+        if not os.path.exists(rf'test_output/{cardPack}'):
+            os.mkdir(rf'test_output/{cardPack}')
 
-        tools.download_img(cardImg, rf'{cardPack}/{cardNo}.jpg')
+        tools.download_img(cardImg, rf'test_output/{cardPack}/{cardNo}.jpg')
 
         cardData = soup.find("div", class_="cardData")
         cardDetail["detail"] = HandleCardDetail(cardData.find_all("dt"), cardData.find_all("dd"))
